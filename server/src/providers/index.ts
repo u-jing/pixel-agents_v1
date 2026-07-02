@@ -13,3 +13,5 @@
 
 export { claudeProvider } from './hook/claude/claude.js';
 export { copyHookScript } from './hook/claude/claudeHookInstaller.js';
+export { copyOpenRouterAgent } from './hook/openrouter/openrouterInstaller.js';
+export { openrouterProvider } from './hook/openrouter/openrouterProvider.js';

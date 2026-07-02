@@ -5,11 +5,14 @@ import * as crypto from 'crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import Fastify from 'fastify';
 
+import type { HookProvider } from '../../core/src/provider.js';
 import type { AgentRuntime } from './agentRuntime.js';
 import type { AgentStateStore } from './agentStateStore.js';
 import type { AssetCache, SetHooksEnabledSideEffect } from './clientMessageHandler.js';
 import { handleClientMessage } from './clientMessageHandler.js';
 import { HOOK_API_PREFIX, MAX_HOOK_BODY_SIZE } from './constants.js';
+import { runMinjeonPipeline } from './minjeon/complaintWorkflow.js';
+import { readExcelComplaints } from './minjeon/excelReader.js';
 import type { AgentState } from './types.js';
 
 /** Options for creating the HTTP + WebSocket server. */
@@ -34,6 +37,8 @@ export interface HttpServerOptions {
   onHookEvent?: (providerId: string, event: Record<string, unknown>) => void;
   /** Invoked when setHooksEnabled is toggled via WebSocket. Standalone installs/uninstalls hooks here. */
   onSetHooksEnabled?: SetHooksEnabledSideEffect;
+  /** Active provider — forwarded to WebSocket message handler for capability advertisement. */
+  provider?: HookProvider;
 }
 
 /** Result of createHttpServer(). */
@@ -76,6 +81,8 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
   registerHealthRoute(app);
   registerHookRoute(app, options);
   registerWebSocketRoute(app, options);
+  registerMinjeonRoute(app);
+  registerMinjeonExcelRoute(app);
 
   // ── Listen ──────────────────────────────────────────────────
 
@@ -187,6 +194,7 @@ function registerWebSocketRoute(app: FastifyInstance, options: HttpServerOptions
           store,
           runtime: options.runtime,
           cache: options.assetCache ?? null,
+          provider: options.provider,
           onSetHooksEnabled: options.onSetHooksEnabled,
         });
       } catch {
@@ -199,6 +207,81 @@ function registerWebSocketRoute(app: FastifyInstance, options: HttpServerOptions
       store.off('agentRemoved', onAgentRemoved);
       store.off('broadcast', onBroadcast);
     });
+  });
+}
+
+// ── Minjeon Pipeline ───────────────────────────────────────────
+
+function registerMinjeonRoute(app: FastifyInstance): void {
+  app.post('/api/minjeon', async (request, reply) => {
+    const body = request.body as Record<string, unknown>;
+    const title = typeof body['title'] === 'string' ? body['title'] : '';
+    const content = typeof body['content'] === 'string' ? body['content'] : '';
+
+    reply.raw.writeHead(200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+    });
+
+    const send = (data: Record<string, unknown>): void => {
+      reply.raw.write(`data: ${JSON.stringify(data)}\n\n`);
+    };
+
+    try {
+      await runMinjeonPipeline(title, content, send);
+    } catch (err: unknown) {
+      send({ type: 'pipeline_error', message: String(err) });
+    }
+
+    reply.raw.end();
+  });
+}
+
+// ── Minjeon Excel Batch ────────────────────────────────────────
+
+function registerMinjeonExcelRoute(app: FastifyInstance): void {
+  app.post('/api/minjeon/excel-samples', async (_request, reply) => {
+    reply.raw.writeHead(200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+    });
+
+    const rawSend = (data: Record<string, unknown>): void => {
+      reply.raw.write(`data: ${JSON.stringify(data)}\n\n`);
+    };
+
+    const { complaints, usingSample, sampleReason } = readExcelComplaints('data/complaints.xlsx');
+
+    rawSend({
+      type: 'batch_start',
+      total: complaints.length,
+      titles: complaints.map((c) => c.title),
+      usingSample,
+      sampleReason,
+    });
+
+    for (let i = 0; i < complaints.length; i++) {
+      const complaint = complaints[i]!;
+      rawSend({ type: 'complaint_start', complaintIndex: i, title: complaint.title });
+
+      const send = (data: Record<string, unknown>): void => {
+        rawSend({ ...data, complaintIndex: i });
+      };
+
+      try {
+        await runMinjeonPipeline(complaint.title, complaint.content, send);
+        rawSend({ type: 'complaint_complete', complaintIndex: i });
+      } catch (err: unknown) {
+        rawSend({ type: 'complaint_error', complaintIndex: i, message: String(err) });
+      }
+    }
+
+    rawSend({ type: 'batch_complete' });
+    reply.raw.end();
   });
 }
 

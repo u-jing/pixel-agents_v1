@@ -8,13 +8,18 @@
     "type": "git",
     "url": "https://github.com/pixel-agents-hq/pixel-agents"
   },
-  "workspaces": ["server", "webview-ui"],
+  "workspaces": [
+    "server",
+    "webview-ui"
+  ],
   "icon": "icon.png",
   "license": "MIT",
   "engines": {
     "vscode": "^1.105.0"
   },
-  "extensionKind": ["workspace"],
+  "extensionKind": [
+    "workspace"
+  ],
   "categories": [
     "Other"
   ],
@@ -140,6 +145,7 @@
     "@fastify/cors": "^11.2.0",
     "@fastify/static": "^9.1.1",
     "@fastify/websocket": "^11.2.0",
-    "fastify": "^5.8.5"
+    "fastify": "^5.8.5",
+    "xlsx": "^0.18.5"
   }
 }

@@ -35,23 +35,27 @@ function copyAssets() {
 }
 
 /**
- * Bundle hook scripts (TypeScript) to dist/hooks via esbuild.
- * Produces a self-contained CJS file with shebang for Claude Code to execute.
+ * Bundle hook scripts and agent runners (TypeScript) to dist/hooks via esbuild.
+ * Each output is a self-contained CJS file with shebang.
  */
 function buildHooks() {
-  const entry = path.join(
-    __dirname,
-    'server',
-    'src',
-    'providers',
-    'hook',
-    'claude',
-    'hooks',
-    'claude-hook.ts',
-  );
-  if (!fs.existsSync(entry)) return;
+  const entries = [
+    path.join(__dirname, 'server', 'src', 'providers', 'hook', 'claude', 'hooks', 'claude-hook.ts'),
+    path.join(
+      __dirname,
+      'server',
+      'src',
+      'providers',
+      'hook',
+      'openrouter',
+      'agent',
+      'openrouter-agent.ts',
+    ),
+  ].filter((e) => fs.existsSync(e));
+
+  if (entries.length === 0) return;
   require('esbuild').buildSync({
-    entryPoints: [entry],
+    entryPoints: entries,
     bundle: true,
     platform: 'node',
     target: 'node18',

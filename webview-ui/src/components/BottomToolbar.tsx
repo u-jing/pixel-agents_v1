@@ -13,6 +13,8 @@ interface BottomToolbarProps {
   isSettingsOpen: boolean;
   onToggleSettings: () => void;
   workspaceFolders: WorkspaceFolder[];
+  isMinjeonOpen: boolean;
+  onToggleMinjeon: () => void;
 }
 
 export function BottomToolbar({
@@ -22,6 +24,8 @@ export function BottomToolbar({
   isSettingsOpen,
   onToggleSettings,
   workspaceFolders,
+  isMinjeonOpen,
+  onToggleMinjeon,
 }: BottomToolbarProps) {
   const [isFolderPickerOpen, setIsFolderPickerOpen] = useState(false);
   const [isBypassMenuOpen, setIsBypassMenuOpen] = useState(false);
@@ -127,6 +131,16 @@ export function BottomToolbar({
       >
         Layout
       </Button>
+      {/* Only shown in standalone browser mode where the API server is reachable */}
+      {isBrowserRuntime && (
+        <Button
+          variant={isMinjeonOpen ? 'active' : 'default'}
+          onClick={onToggleMinjeon}
+          title="민원 초안 생성 AI"
+        >
+          민원 초안
+        </Button>
+      )}
       <Button
         variant={isSettingsOpen ? 'active' : 'default'}
         onClick={onToggleSettings}

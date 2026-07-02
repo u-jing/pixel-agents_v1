@@ -1,3 +1,4 @@
+import type { HookProvider } from '../../core/src/provider.js';
 import type { AgentRuntime } from './agentRuntime.js';
 import type { AgentStateStore } from './agentStateStore.js';
 import type { LoadedAssets, LoadedCharacterSprites, LoadedPetSprites } from './assetLoader.js';
@@ -24,6 +25,8 @@ export interface ClientMessageContext {
   store: AgentStateStore;
   runtime?: AgentRuntime;
   cache: AssetCache | null;
+  /** Active provider for capability advertisement. Defaults to claudeProvider when absent. */
+  provider?: HookProvider;
   /** Install/uninstall hooks side effect. Needs server url+token known only to cli.ts. */
   onSetHooksEnabled?: SetHooksEnabledSideEffect;
 }
@@ -135,10 +138,11 @@ function handleWebviewReady(send: WsSend, ctx: ClientMessageContext): void {
   const adapter = store.getAdapter();
 
   // 1. Provider capabilities (must arrive before any agent messages)
+  const activeProvider = ctx.provider ?? claudeProvider;
   send({
     type: 'providerCapabilities',
-    readingTools: [...claudeProvider.readingTools],
-    subagentToolNames: [...claudeProvider.subagentToolNames],
+    readingTools: [...activeProvider.readingTools],
+    subagentToolNames: [...activeProvider.subagentToolNames],
   });
 
   // 2. Assets (from server cache, loaded at startup via pngjs)

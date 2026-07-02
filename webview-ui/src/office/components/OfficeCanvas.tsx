@@ -272,6 +272,17 @@ export function OfficeCanvas({
         );
         offsetRef.current = { x: offsetX, y: offsetY };
 
+        // Expose camera transform for overlay canvases (e.g. minjeon pipeline overlay).
+        // offsetX/offsetY are in device-pixel (DPR-scaled) canvas coordinates.
+        // Consumers must divide by dpr to get CSS pixels.
+        (window as unknown as { __pixelAgentsCamera?: unknown }).__pixelAgentsCamera = {
+          offsetX,
+          offsetY,
+          zoom,
+          tileSize: TILE_SIZE,
+          dpr: window.devicePixelRatio || 1,
+        };
+
         // Store delete/rotate button bounds for hit-testing
         deleteButtonBoundsRef.current = editorRender?.deleteButtonBounds ?? null;
         rotateButtonBoundsRef.current = editorRender?.rotateButtonBounds ?? null;

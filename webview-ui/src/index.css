@@ -126,3 +126,188 @@
     opacity: 0.3;
   }
 }
+
+/* Minjeon Panel — stage lane + agent card animations */
+@keyframes minjeon-lane-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes minjeon-agent-in {
+  from {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes minjeon-agent-pulse {
+  0%,
+  100% {
+    box-shadow: 2px 2px 0px #0a0a14;
+  }
+  50% {
+    box-shadow: 0 0 0 2px var(--color-accent), 2px 2px 0px #0a0a14;
+  }
+}
+
+@keyframes minjeon-agent-leave {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0.5;
+    transform: translateX(10px) scale(0.97);
+  }
+}
+
+.minjeon-lane {
+  animation: minjeon-lane-in 0.35s ease-out both;
+}
+
+.minjeon-agent-card {
+  animation: minjeon-agent-in 0.35s ease-out both;
+}
+
+.minjeon-agent-card[data-status='running'] {
+  animation: minjeon-agent-pulse 1.4s ease-in-out infinite;
+}
+
+.minjeon-agent-card[data-status='done'] {
+  animation: minjeon-agent-leave 0.4s ease-out forwards;
+}
+
+/* Canvas worker characters — sprite-sheet based (char_N.png from assets/characters/) */
+/* Sprite sheet: 112×96px, 7 frames × 3 rows, each frame 16×32px
+   Row 0 (y=0):   facing down  — idle/type/read frames
+   Row 1 (y=32):  facing up
+   Row 2 (y=64):  facing right — walk frames (flip for left)
+   Frame order: walk1(0) walk2(1) walk3(2) type1(3) type2(4) read1(5) read2(6)
+   At 2× scale: frame = 32×64px, sheet = 224×192px                          */
+
+.minjeon-sprite {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background-repeat: no-repeat;
+}
+
+/* Walk right: row 2 (background-y = -128px at 2×), cycle frames 0-1-2 */
+.minjeon-sprite-walk {
+  animation: minjeon-walk 0.5s steps(3) infinite;
+}
+@keyframes minjeon-walk {
+  from { background-position: 0px -128px; }
+  to   { background-position: -96px -128px; }
+}
+
+/* Type (working at desk): row 0, frames 3-4 */
+.minjeon-sprite-type {
+  animation: minjeon-type 0.55s steps(2) infinite;
+}
+@keyframes minjeon-type {
+  from { background-position: -96px 0px; }
+  to   { background-position: -160px 0px; }
+}
+
+/* Read (reviewing): row 0, frames 5-6 */
+.minjeon-sprite-read {
+  animation: minjeon-read 0.8s steps(2) infinite;
+}
+@keyframes minjeon-read {
+  from { background-position: -160px 0px; }
+  to   { background-position: -224px 0px; }
+}
+
+/* Idle (resting at sofa): row 0, frame 0 */
+.minjeon-sprite-idle {
+  background-position: 0px 0px;
+}
+
+/* Commute overlay — pixel-art walking person tokens */
+.minjeon-commuter {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 14px;
+  cursor: default;
+  animation: minjeon-agent-in 0.4s ease-out both;
+}
+
+.minjeon-commuter-head {
+  width: 10px;
+  height: 10px;
+  background: var(--commuter-color, var(--color-accent));
+  border-radius: 50%;
+  image-rendering: pixelated;
+}
+
+.minjeon-commuter-body {
+  width: 12px;
+  height: 9px;
+  background: var(--commuter-color, var(--color-accent));
+  margin-top: 1px;
+}
+
+.minjeon-commuter-legs {
+  display: flex;
+  gap: 3px;
+  margin-top: 1px;
+}
+
+.minjeon-commuter-leg {
+  width: 4px;
+  height: 7px;
+  background: var(--commuter-color, var(--color-accent));
+  transform-origin: top center;
+}
+
+/* Waiting: dim + no movement */
+.minjeon-commuter--waiting {
+  opacity: 0.18;
+}
+
+/* Working: full opacity + walking animation */
+.minjeon-commuter--working {
+  opacity: 1;
+  animation: minjeon-commuter-walk 0.5s ease-in-out infinite alternate, minjeon-agent-in 0.4s ease-out both;
+}
+
+.minjeon-commuter--working .minjeon-commuter-leg:first-child {
+  animation: minjeon-leg-swing 0.5s ease-in-out infinite alternate;
+}
+
+.minjeon-commuter--working .minjeon-commuter-leg:last-child {
+  animation: minjeon-leg-swing 0.5s ease-in-out infinite alternate-reverse;
+}
+
+/* Done: slide out right + dim */
+.minjeon-commuter--done {
+  opacity: 0.3;
+  animation: minjeon-commuter-leave 0.6s ease-in forwards;
+}
+
+@keyframes minjeon-commuter-walk {
+  from { transform: translateY(0px); }
+  to { transform: translateY(-4px); }
+}
+
+@keyframes minjeon-leg-swing {
+  from { transform: rotate(-20deg); }
+  to { transform: rotate(20deg); }
+}
+
+@keyframes minjeon-commuter-leave {
+  0% { opacity: 0.9; transform: translateX(0); }
+  100% { opacity: 0; transform: translateX(20px); }
+}
